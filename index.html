@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Метеостанция</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="layout">
+
+    <header>
+      <div class="header-left">
+        <span class="dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Загрузка...</span>
+      </div>
+      <div class="header-title">МЕТЕОСТАНЦИЯ</div>
+      <div class="header-right">
+        <span class="mono" id="clock">--:--:--</span>
+      </div>
+    </header>
+
+    <section class="cards">
+      <div class="card card--temp">
+        <div class="card-label">ТЕМПЕРАТУРА</div>
+        <div class="card-value" id="temp-value">--.-</div>
+        <div class="card-unit">°C</div>
+        <div class="card-sub" id="temp-minmax">мин — макс</div>
+      </div>
+      <div class="card card--hum">
+        <div class="card-label">ВЛАЖНОСТЬ</div>
+        <div class="card-value" id="hum-value">--.-</div>
+        <div class="card-unit">%</div>
+        <div class="card-sub" id="hum-minmax">мин — макс</div>
+      </div>
+      <div class="card card--count">
+        <div class="card-label">ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</div>
+        <div class="card-value card-value--small" id="last-update">--</div>
+        <div class="card-unit"> </div>
+        <div class="card-sub" id="count-sub">измерений в базе: --</div>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <div class="chart-header">
+        <span class="chart-title">ИСТОРИЯ</span>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot temp-dot"></span>Температура</span>
+          <span class="legend-item"><span class="legend-dot hum-dot"></span>Влажность</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart" role="img" aria-label="График температуры и влажности">Данные загружаются...</canvas>
+      </div>
+    </section>
+
+    <footer>
+      <span class="mono">ESP32 · DHT22 · Supabase</span>
+    </footer>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="script.js"></script>
+
+</body>
+</html>
