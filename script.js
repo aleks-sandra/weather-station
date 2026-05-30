@@ -2,8 +2,9 @@ var SUPABASE_URL = "https://zqrxucdiopxbeqanrspv.supabase.co";
 var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxcnh1Y2Rpb3B4YmVxYW5yc3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODA4ODcsImV4cCI6MjA5NTY1Njg4N30._dXFjAJsGO8gfO3biBl3DCS6EA4PAAt-SpA7ycT_uhY";
 
 var chart;
+var chartMode = "100"; // "100" or "24h"
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function avg(arr) {
   if (!arr.length) return null;
@@ -27,16 +28,14 @@ function formatDateTime(iso) {
          " " + formatTime(iso);
 }
 
-// Returns "YYYY-MM-DD" in local time
 function localDateStr(d) {
   return d.getFullYear() + "-" +
          String(d.getMonth() + 1).padStart(2, "0") + "-" +
          String(d.getDate()).padStart(2, "0");
 }
 
-// Split rows into four 6-hour periods based on local hour
 function splitPeriods(rows) {
-  var night     = [], morning = [], afternoon = [], evening = [];
+  var night = [], morning = [], afternoon = [], evening = [];
   rows.forEach(function(r) {
     var h = new Date(r.created_at).getHours();
     if      (h < 6)  night.push(r);
@@ -62,7 +61,7 @@ function renderPeriods(prefix, rows) {
   document.getElementById(prefix + "-avg-hum").textContent  = fmt(avg(allHums),  "%");
 }
 
-// ── Supabase fetch helpers ────────────────────────────────────────────────────
+// ── Supabase fetch helpers ─────────────────────────────────────────────────────
 
 function supabaseHeaders() {
   return {
@@ -71,9 +70,7 @@ function supabaseHeaders() {
   };
 }
 
-// Fetch all rows for a calendar day (local time → UTC range)
 async function fetchDay(dateStr) {
-  // dateStr = "YYYY-MM-DD" in local time
   var start = new Date(dateStr + "T00:00:00");
   var end   = new Date(dateStr + "T23:59:59");
   var url = SUPABASE_URL + "/rest/v1/readings?select=*" +
@@ -85,16 +82,16 @@ async function fetchDay(dateStr) {
   return res.json();
 }
 
-// ── Status dot ───────────────────────────────────────────────────────────────
+// ── Status dot ────────────────────────────────────────────────────────────────
 
 function setStatus(ok) {
   var dot  = document.getElementById("status-dot");
   var text = document.getElementById("status-text");
-  dot.className  = "dot " + (ok ? "connected" : "disconnected");
+  dot.className    = "dot " + (ok ? "connected" : "disconnected");
   text.textContent = ok ? "Данные получены" : "Ошибка загрузки";
 }
 
-// ── Chart ─────────────────────────────────────────────────────────────────────
+// ── Chart ──────────────────────────────────────────────────────────────────────
 
 function initChart() {
   var ctx = document.getElementById("chart").getContext("2d");
@@ -169,14 +166,20 @@ function initChart() {
   });
 }
 
-// ── Main data fetch (latest 100 rows for chart + current cards) ───────────────
+// ── Main data fetch ────────────────────────────────────────────────────────────
 
 async function fetchData() {
   try {
-    var res = await fetch(
-      SUPABASE_URL + "/rest/v1/readings?select=*&order=created_at.desc&limit=100",
-      { headers: supabaseHeaders() }
-    );
+    var chartUrl;
+    if (chartMode === "24h") {
+      var since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      chartUrl = SUPABASE_URL + "/rest/v1/readings?select=*&created_at=gte." + since +
+                 "&order=created_at.asc&limit=10000";
+    } else {
+      chartUrl = SUPABASE_URL + "/rest/v1/readings?select=*&order=created_at.desc&limit=100";
+    }
+
+    var res = await fetch(chartUrl, { headers: supabaseHeaders() });
     if (!res.ok) throw new Error("HTTP " + res.status);
     var rows = await res.json();
     if (!rows.length) return;
@@ -194,7 +197,8 @@ async function fetchData() {
       if (cr) total = cr.split("/")[1];
     }
 
-    var latest = rows[0];
+    // Latest reading
+    var latest = chartMode === "24h" ? rows[rows.length - 1] : rows[0];
     document.getElementById("temp-value").textContent  = latest.temperature.toFixed(1);
     document.getElementById("hum-value").textContent   = latest.humidity.toFixed(1);
     document.getElementById("last-update").textContent = formatDateTime(latest.created_at);
@@ -207,10 +211,11 @@ async function fetchData() {
     document.getElementById("hum-minmax").textContent =
       Math.min.apply(null, hums).toFixed(1) + "% — " + Math.max.apply(null, hums).toFixed(1) + "%";
 
-    var reversed = rows.slice().reverse();
-    chart.data.labels            = reversed.map(function(r) { return formatTime(r.created_at); });
-    chart.data.datasets[0].data  = reversed.map(function(r) { return r.temperature; });
-    chart.data.datasets[1].data  = reversed.map(function(r) { return r.humidity; });
+    // Chart — 24h already asc, 100 mode needs reverse
+    var chartRows = chartMode === "24h" ? rows : rows.slice().reverse();
+    chart.data.labels           = chartRows.map(function(r) { return formatTime(r.created_at); });
+    chart.data.datasets[0].data = chartRows.map(function(r) { return r.temperature; });
+    chart.data.datasets[1].data = chartRows.map(function(r) { return r.humidity; });
     chart.update("none");
 
   } catch(e) {
@@ -250,6 +255,17 @@ document.getElementById("date-load-btn").addEventListener("click", async functio
   } catch(e) {
     console.error("pick stats:", e);
   }
+});
+
+// ── Chart mode toggle ─────────────────────────────────────────────────────────
+
+document.querySelectorAll(".chart-mode-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".chart-mode-btn").forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    chartMode = btn.dataset.mode;
+    fetchData();
+  });
 });
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
