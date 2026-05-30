@@ -3,6 +3,99 @@ var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 
 var chart;
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+function avg(arr) {
+  if (!arr.length) return null;
+  return arr.reduce(function(s, v) { return s + v; }, 0) / arr.length;
+}
+
+function fmt(val, unit) {
+  if (val === null) return "—";
+  return val.toFixed(1) + " " + unit;
+}
+
+function formatTime(iso) {
+  var d = new Date(iso);
+  return d.getHours().toString().padStart(2, "0") + ":" +
+         d.getMinutes().toString().padStart(2, "0");
+}
+
+function formatDateTime(iso) {
+  var d = new Date(iso);
+  return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }) +
+         " " + formatTime(iso);
+}
+
+// Returns "YYYY-MM-DD" in local time
+function localDateStr(d) {
+  return d.getFullYear() + "-" +
+         String(d.getMonth() + 1).padStart(2, "0") + "-" +
+         String(d.getDate()).padStart(2, "0");
+}
+
+// Split rows into four 6-hour periods based on local hour
+function splitPeriods(rows) {
+  var night     = [], morning = [], afternoon = [], evening = [];
+  rows.forEach(function(r) {
+    var h = new Date(r.created_at).getHours();
+    if      (h < 6)  night.push(r);
+    else if (h < 12) morning.push(r);
+    else if (h < 18) afternoon.push(r);
+    else             evening.push(r);
+  });
+  return { night: night, morning: morning, afternoon: afternoon, evening: evening };
+}
+
+function renderPeriods(prefix, rows) {
+  var p = splitPeriods(rows);
+  var periods = ["night", "morning", "afternoon", "evening"];
+  periods.forEach(function(name) {
+    var temps = p[name].map(function(r) { return r.temperature; });
+    var hums  = p[name].map(function(r) { return r.humidity; });
+    document.getElementById(prefix + "-" + name + "-temp").textContent = fmt(avg(temps), "°C");
+    document.getElementById(prefix + "-" + name + "-hum").textContent  = fmt(avg(hums),  "%");
+  });
+  var allTemps = rows.map(function(r) { return r.temperature; });
+  var allHums  = rows.map(function(r) { return r.humidity; });
+  document.getElementById(prefix + "-avg-temp").textContent = fmt(avg(allTemps), "°C");
+  document.getElementById(prefix + "-avg-hum").textContent  = fmt(avg(allHums),  "%");
+}
+
+// ── Supabase fetch helpers ────────────────────────────────────────────────────
+
+function supabaseHeaders() {
+  return {
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY
+  };
+}
+
+// Fetch all rows for a calendar day (local time → UTC range)
+async function fetchDay(dateStr) {
+  // dateStr = "YYYY-MM-DD" in local time
+  var start = new Date(dateStr + "T00:00:00");
+  var end   = new Date(dateStr + "T23:59:59");
+  var url = SUPABASE_URL + "/rest/v1/readings?select=*" +
+            "&created_at=gte." + start.toISOString() +
+            "&created_at=lte." + end.toISOString() +
+            "&order=created_at.asc&limit=10000";
+  var res = await fetch(url, { headers: supabaseHeaders() });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+// ── Status dot ───────────────────────────────────────────────────────────────
+
+function setStatus(ok) {
+  var dot  = document.getElementById("status-dot");
+  var text = document.getElementById("status-text");
+  dot.className  = "dot " + (ok ? "connected" : "disconnected");
+  text.textContent = ok ? "Данные получены" : "Ошибка загрузки";
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+
 function initChart() {
   var ctx = document.getElementById("chart").getContext("2d");
   chart = new Chart(ctx, {
@@ -48,108 +141,76 @@ function initChart() {
           bodyColor: "#e8e8e0",
           titleFont: { family: "DM Mono", size: 11 },
           bodyFont: { family: "DM Mono", size: 12 },
-          padding: 10,
           callbacks: {
             label: function(ctx) {
-              if (ctx.datasetIndex === 0) return "  " + ctx.parsed.y.toFixed(1) + " °C";
-              return "  " + ctx.parsed.y.toFixed(1) + " %";
+              var unit = ctx.datasetIndex === 0 ? " °C" : " %";
+              return " " + ctx.parsed.y.toFixed(1) + unit;
             }
           }
         }
       },
       scales: {
         x: {
-          ticks: {
-            color: "#444",
-            font: { family: "DM Mono", size: 10 },
-            maxTicksLimit: 8,
-            maxRotation: 0
-          },
-          grid: { color: "rgba(255,255,255,0.04)" },
-          border: { color: "#2a2a2a" }
+          ticks: { color: "#555", font: { family: "DM Mono", size: 10 }, maxTicksLimit: 8 },
+          grid:  { color: "#1e1e1e" }
         },
         yTemp: {
           position: "left",
-          ticks: {
-            color: "#e8855a",
-            font: { family: "DM Mono", size: 10 },
-            callback: function(v) { return v.toFixed(1) + "°"; }
-          },
-          grid: { color: "rgba(255,255,255,0.04)" },
-          border: { color: "#2a2a2a" }
+          ticks: { color: "#e8855a", font: { family: "DM Mono", size: 10 } },
+          grid:  { color: "#1e1e1e" }
         },
         yHum: {
           position: "right",
-          ticks: {
-            color: "#5a9fe8",
-            font: { family: "DM Mono", size: 10 },
-            callback: function(v) { return v.toFixed(0) + "%"; }
-          },
-          grid: { display: false },
-          border: { color: "#2a2a2a" }
+          ticks: { color: "#5a9fe8", font: { family: "DM Mono", size: 10 } },
+          grid:  { display: false }
         }
       }
     }
   });
 }
 
-function formatTime(isoString) {
-  var d = new Date(isoString);
-  return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-}
-
-function formatDateTime(isoString) {
-  var d = new Date(isoString);
-  return d.toLocaleString("ru-RU", {
-    day: "2-digit", month: "2-digit",
-    hour: "2-digit", minute: "2-digit"
-  });
-}
-
-function setStatus(ok) {
-  var dot = document.getElementById("status-dot");
-  var text = document.getElementById("status-text");
-  dot.className = "dot " + (ok ? "connected" : "disconnected");
-  text.textContent = ok ? "Данные получены" : "Ошибка загрузки";
-}
+// ── Main data fetch (latest 100 rows for chart + current cards) ───────────────
 
 async function fetchData() {
   try {
     var res = await fetch(
-      SUPABASE_URL + "/rest/v1/readings?select=*&order=created_at.desc&limit=50",
-      {
-        headers: {
-          "apikey": SUPABASE_KEY,
-          "Authorization": "Bearer " + SUPABASE_KEY
-        }
-      }
+      SUPABASE_URL + "/rest/v1/readings?select=*&order=created_at.desc&limit=100",
+      { headers: supabaseHeaders() }
     );
-
     if (!res.ok) throw new Error("HTTP " + res.status);
-
     var rows = await res.json();
     if (!rows.length) return;
 
     setStatus(true);
 
+    // Count total
+    var countRes = await fetch(
+      SUPABASE_URL + "/rest/v1/readings?select=count",
+      { headers: Object.assign({}, supabaseHeaders(), { "Prefer": "count=exact" }) }
+    );
+    var total = "?";
+    if (countRes.ok) {
+      var cr = countRes.headers.get("content-range");
+      if (cr) total = cr.split("/")[1];
+    }
+
     var latest = rows[0];
-    document.getElementById("temp-value").textContent = latest.temperature.toFixed(1);
-    document.getElementById("hum-value").textContent = latest.humidity.toFixed(1);
+    document.getElementById("temp-value").textContent  = latest.temperature.toFixed(1);
+    document.getElementById("hum-value").textContent   = latest.humidity.toFixed(1);
     document.getElementById("last-update").textContent = formatDateTime(latest.created_at);
-    document.getElementById("count-sub").textContent = "измерений в базе: " + rows.length;
+    document.getElementById("count-sub").textContent   = "измерений в базе: " + total;
 
     var temps = rows.map(function(r) { return r.temperature; });
-    var hums = rows.map(function(r) { return r.humidity; });
-
+    var hums  = rows.map(function(r) { return r.humidity; });
     document.getElementById("temp-minmax").textContent =
       Math.min.apply(null, temps).toFixed(1) + "° — " + Math.max.apply(null, temps).toFixed(1) + "°";
     document.getElementById("hum-minmax").textContent =
       Math.min.apply(null, hums).toFixed(1) + "% — " + Math.max.apply(null, hums).toFixed(1) + "%";
 
     var reversed = rows.slice().reverse();
-    chart.data.labels = reversed.map(function(r) { return formatTime(r.created_at); });
-    chart.data.datasets[0].data = reversed.map(function(r) { return r.temperature; });
-    chart.data.datasets[1].data = reversed.map(function(r) { return r.humidity; });
+    chart.data.labels            = reversed.map(function(r) { return formatTime(r.created_at); });
+    chart.data.datasets[0].data  = reversed.map(function(r) { return r.temperature; });
+    chart.data.datasets[1].data  = reversed.map(function(r) { return r.humidity; });
     chart.update("none");
 
   } catch(e) {
@@ -158,17 +219,66 @@ async function fetchData() {
   }
 }
 
+// ── Stats: today & yesterday ──────────────────────────────────────────────────
+
+async function fetchStats() {
+  var today     = localDateStr(new Date());
+  var yd        = new Date(); yd.setDate(yd.getDate() - 1);
+  var yesterday = localDateStr(yd);
+
+  try {
+    var todayRows = await fetchDay(today);
+    renderPeriods("today", todayRows);
+  } catch(e) { console.error("today stats:", e); }
+
+  try {
+    var ydRows = await fetchDay(yesterday);
+    renderPeriods("yesterday", ydRows);
+  } catch(e) { console.error("yesterday stats:", e); }
+}
+
+// ── Date picker ───────────────────────────────────────────────────────────────
+
+document.getElementById("date-picker").value = localDateStr(new Date());
+
+document.getElementById("date-load-btn").addEventListener("click", async function() {
+  var dateStr = document.getElementById("date-picker").value;
+  if (!dateStr) return;
+  try {
+    var rows = await fetchDay(dateStr);
+    renderPeriods("pick", rows);
+  } catch(e) {
+    console.error("pick stats:", e);
+  }
+});
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+
+document.querySelectorAll(".tab-btn[data-tab]").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".tab-btn[data-tab]").forEach(function(b) { b.classList.remove("active"); });
+    document.querySelectorAll(".tab-content").forEach(function(c) { c.classList.add("hidden"); });
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+  });
+});
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+
 function startClock() {
   setInterval(function() {
     var now = new Date();
-    var t = now.getHours().toString().padStart(2, "0") + ":" +
-            now.getMinutes().toString().padStart(2, "0") + ":" +
-            now.getSeconds().toString().padStart(2, "0");
-    document.getElementById("clock").textContent = t;
+    document.getElementById("clock").textContent =
+      now.getHours().toString().padStart(2, "0") + ":" +
+      now.getMinutes().toString().padStart(2, "0");
   }, 1000);
 }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
 
 initChart();
 startClock();
 fetchData();
-setInterval(fetchData, 60000);
+fetchStats();
+setInterval(fetchData, 90000);
+setInterval(fetchStats, 90000);
