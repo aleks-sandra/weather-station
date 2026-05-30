@@ -57,6 +57,172 @@
       </div>
     </section>
 
+    <section class="stats-section">
+      <div class="stats-header">
+        <span class="chart-title">СТАТИСТИКА ПО ДНЯМ</span>
+      </div>
+
+      <div class="stats-tabs">
+        <button class="tab-btn active" data-tab="today">Сегодня</button>
+        <button class="tab-btn" data-tab="yesterday">Вчера</button>
+        <button class="tab-btn" data-tab="pick">Выбрать день</button>
+      </div>
+
+      <div class="tab-content" id="tab-today">
+        <div class="period-cards">
+          <div class="period-card">
+            <div class="period-label">НОЧЬ <span class="period-hint">00:00–06:00</span></div>
+            <div class="period-row">
+              <span class="period-val temp-col" id="today-night-temp">--</span>
+              <span class="period-val hum-col" id="today-night-hum">--</span>
+            </div>
+          </div>
+          <div class="period-card">
+            <div class="period-label">УТРО <span class="period-hint">06:00–12:00</span></div>
+            <div class="period-row">
+              <span class="period-val temp-col" id="today-morning-temp">--</span>
+              <span class="period-val hum-col" id="today-morning-hum">--</span>
+            </div>
+          </div>
+          <div class="period-card">
+            <div class="period-label">ДЕНЬ <span class="period-hint">12:00–18:00</span></div>
+            <div class="period-row">
+              <span class="period-val temp-col" id="today-afternoon-temp">--</span>
+              <span class="period-val hum-col" id="today-afternoon-hum">--</span>
+            </div>
+          </div>
+          <div class="period-card">
+            <div class="period-label">ВЕЧЕР <span class="period-hint">18:00–00:00</span></div>
+            <div class="period-row">
+              <span class="period-val temp-col" id="today-evening-temp">--</span>
+              <span class="period-val hum-col" id="today-evening-hum">--</span>
+            </div>
+          </div>
+        </div>
+        <div class="day-summary">
+          <span>Среднее за день:</span>
+          <span class="temp-col" id="today-avg-temp">-- °C</span>
+          <span class="hum-col" id="today-avg-hum">-- %</span>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="tab-yesterday">
+        <div class="period-cards">
+          <div class="period-card">
+            <div class="period-label">НОЧЬ <span class="period-hint">00:00–06:00</span></div>
+            <div class="period-row">
+              <span class="period-val temp-col" id="yesterday-night-temp">--</span>
+              <span class="period-val hum-col" id="yesterday-night-hum">--</span>
+            </div>
+          </div>
+          <div class="period-card">
+            <div class="period-label">УТРО <span class="period-hint">06:00–12:00</span></div>
+            <div class="period-row">
+              <span class="period-val temp-col" id="yesterday-morning-temp">--</span>
+              <span class="period-val hum-col" id="yesterday-morning-hum">--</span>
+            </div>
+          </div>
+          <div class="period-card">
+            <div class="period-label">ДЕНЬ <span class="period-hint">12:00–18:00</span></div>
+            <div class="period-row">
+              <span class="period-val temp-col" id="yesterday-afternoon-temp">--</span>
+              <span class="period-val hum-col" id="yesterday-afternoon-hum">--</span>
+            </div>
+          </div>
+          <div class="period-card">
+            <div class="period-label">ВЕЧЕР <span class="period-hint">18:00–00:00</span></div>
+            <div class="period-row">
+              <span class="period-val temp-col" id="yesterday-evening-temp">--</span>
+              <span class="period-val hum-col" id="yesterday-evening-hum">--</span>
+            </div>
+          </div>
+        </div>
+        <div class="day-summary">
+          <span>Среднее за день:</span>
+          <span class="temp-col" id="yesterday-avg-temp">-- °C</span>
+          <span class="hum-col" id="yesterday-avg-hum">-- %</span>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="tab-pick">
+        <div class="pick-row">
+          <input type="date" id="date-picker" />
+          <button class="tab-btn active" id="date-load-btn">Загрузить</button>
+        </div>
+        <div id="pick-result">
+          <div class="period-cards">
+            <div class="period-card">
+              <div class="period-label">НОЧЬ <span class="period-hint">00:00–06:00</span></div>
+              <div class="period-row">
+                <span class="period-val temp-col" id="pick-night-temp">--</span>
+                <span class="period-val hum-col" id="pick-night-hum">--</span>
+              </div>
+            </div>
+            <div class="period-card">
+              <div class="period-label">УТРО <span class="period-hint">06:00–12:00</span></div>
+              <div class="period-row">
+                <span class="period-val temp-col" id="pick-morning-temp">--</span>
+                <span class="period-val hum-col" id="pick-morning-hum">--</span>
+              </div>
+            </div>
+            <div class="period-card">
+              <div class="period-label">ДЕНЬ <span class="period-hint">12:00–18:00</span></div>
+              <div class="period-row">
+                <span class="period-val temp-col" id="pick-afternoon-temp">--</span>
+                <span class="period-val hum-col" id="pick-afternoon-hum">--</span>
+              </div>
+            </div>
+            <div class="period-card">
+              <div class="period-label">ВЕЧЕР <span class="period-hint">18:00–00:00</span></div>
+              <div class="period-row">
+                <span class="period-val temp-col" id="pick-evening-temp">--</span>
+                <span class="period-val hum-col" id="pick-evening-hum">--</span>
+              </div>
+            </div>
+          </div>
+          <div class="day-summary">
+            <span>Среднее за день:</span>
+            <span class="temp-col" id="pick-avg-temp">-- °C</span>
+            <span class="hum-col" id="pick-avg-hum">-- %</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <footer>
+      <span class="mono">ESP32 · DHT22 · Supabase</span>
+    </footer>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="script.js"></script>
+
+</body>
+</html>        <div class="card-sub" id="hum-minmax">мин — макс</div>
+      </div>
+      <div class="card card--count">
+        <div class="card-label">ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</div>
+        <div class="card-value card-value--small" id="last-update">--</div>
+        <div class="card-unit"> </div>
+        <div class="card-sub" id="count-sub">измерений в базе: --</div>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <div class="chart-header">
+        <span class="chart-title">ИСТОРИЯ</span>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot temp-dot"></span>Температура</span>
+          <span class="legend-item"><span class="legend-dot hum-dot"></span>Влажность</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart" role="img" aria-label="График температуры и влажности">Данные загружаются...</canvas>
+      </div>
+    </section>
+
     <footer>
       <span class="mono">ESP32 · DHT22 · Supabase</span>
     </footer>
