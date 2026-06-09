@@ -349,12 +349,6 @@ header {
 }
 
 /* DATE PICKER */
-.pick-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
-}
 
 input[type="date"] {
   background: var(--bg);
