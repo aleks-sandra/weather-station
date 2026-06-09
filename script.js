@@ -244,13 +244,14 @@ async function fetchStats() {
 
 // ── Date picker ───────────────────────────────────────────────────────────────
 
-document.getElementById("date-picker").value = localDateStr(new Date());
+var picker = document.getElementById("date-picker");
+picker.value = localDateStr(new Date());
+picker.min = "2026-05-30";
 
-document.getElementById("date-load-btn").addEventListener("click", async function() {
-  var dateStr = document.getElementById("date-picker").value;
-  if (!dateStr) return;
+picker.addEventListener("change", async function() {
+  if (!picker.value) return;
   try {
-    var rows = await fetchDay(dateStr);
+    var rows = await fetchDay(picker.value);
     renderPeriods("pick", rows);
   } catch(e) {
     console.error("pick stats:", e);
