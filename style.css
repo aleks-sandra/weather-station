@@ -380,6 +380,16 @@ footer {
   color: var(--muted);
 }
 
+footer a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+footer a:hover {
+  color: var(--accent);
+}
+
 @media (max-width: 500px) {
   header {
     flex-wrap: wrap;
